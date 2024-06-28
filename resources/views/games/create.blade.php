@@ -5,12 +5,13 @@
         <h1 class="text-center mb-4">Start New Game</h1>
         <form action="{{ route('games.store') }}" method="POST">
             @csrf
+            <input type="hidden" name="tournament_id" value="{{ $tournament_id }}">
             <div class="row mb-3">
                 <div class="col-md-5">
                     <div class="card">
                         <div class="card-body">
                             <label for="player1" class="form-label">Player 1 (You)</label>
-                            <input type="text" class="form-control" id="player1" name="player1" value="Test" readonly>
+                            <input type="text" class="form-control" id="player1" name="player1" value="{{ Auth::user()->name }}" readonly>
                         </div>
                     </div>
                 </div>
@@ -18,7 +19,8 @@
                     <div class="card">
                         <div class="card-body">
                             <label for="player2" class="form-label">Player 2 (Opponent)</label>
-                            <input type="text" class="form-control" id="player2" name="player2" placeholder="Search for an opponent">
+                            <input type="text" class="form-control" id="player2" name="player2" placeholder="Search for an opponent" value="{{ $opponent ? $opponent->name : '' }}" autocomplete="off">
+                            <div id="search-results" class="list-group"></div>
                         </div>
                     </div>
                 </div>
@@ -39,7 +41,7 @@
                         <input type="number" class="form-control mt-2" id="legs" name="legs" placeholder="Number of legs" disabled>
                     </div>
 
-                    <div class="mb3">
+                    <div class="mb-3">
                         <label class="form-label">Sets</label>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="set_type" id="no_sets" value="no_sets" checked>
@@ -50,6 +52,7 @@
                             <label class="form-check-label" for="sets_of">Sets of</label>
                         </div>
                         <input type="number" class="form-control mt-2" id="legs_in_set" name="legs_in_set" placeholder="Legs in a set" disabled>
+                        <input type="number" class="form-control mt-2" id="sets" name="sets" placeholder="Number of sets" disabled>
                     </div>
 
                     <div class="mb-3">
@@ -69,73 +72,68 @@
             const setTypeRadios = document.getElementsByName('set_type');
             const legsInput = document.getElementById('legs');
             const legsInSetInput = document.getElementById('legs_in_set');
+            const setsInput = document.getElementById('sets');
+
+            function enableDisableTextBoxes() {
+                if (document.getElementById('best_of').checked) {
+                    legsInput.disabled = false;
+                } else {
+                    legsInput.disabled = true;
+                    legsInput.value = '';
+                }
+
+                if (document.getElementById('sets_of').checked) {
+                    legsInSetInput.disabled = false;
+                    setsInput.disabled = false;
+                } else {
+                    legsInSetInput.disabled = true;
+                    legsInSetInput.value = '';
+                    setsInput.disabled = true;
+                    setsInput.value = '';
+                }
+            }
 
             gameTypeRadios.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    if (document.getElementById('best_of').checked) {
-                        legsInput.disabled = false;
-                    } else {
-                        legsInput.disabled = true;
-                        legsInput.value = '';
-                    }
-                });
+                radio.addEventListener('change', enableDisableTextBoxes);
             });
 
             setTypeRadios.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    if (document.getElementById('sets_of').checked) {
-                        legsInSetInput.disabled = false;
-                    } else {
-                        legsInSetInput.disabled = true;
-                        legsInSetInput.value = '';
-                    }
-                });
+                radio.addEventListener('change', enableDisableTextBoxes);
             });
-        });
-    </script>
-@endsection
-
-
-@section('scripts')
-    <script>
-        function enableDisableTextBoxes() {
-            const bestOfRadio = document.getElementById('best_of');
-            const legsInput = document.getElementById('legs');
-
-            const setsOfRadio = document.getElementById('sets_of');
-            const legsInSetInput = document.getElementById('legs_in_set');
-
-            if (bestOfRadio.checked) {
-                legsInput.disabled = false;
-                alert('Best of selected, enabling Number of legs input');
-            } else {
-                legsInput.disabled = true;
-                legsInput.value = '';
-                alert('One leg game selected, disabling Number of legs input');
-            }
-
-            if (setsOfRadio.checked) {
-                legsInSetInput.disabled = false;
-                alert('Sets of selected, enabling Legs in a set input');
-            } else {
-                legsInSetInput.disabled = true;
-                legsInSetInput.value = '';
-                alert('No sets selected, disabling Legs in a set input');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const bestOfRadio = document.getElementById('best_of');
-            const oneLegRadio = document.getElementById('one_leg');
-            const setsOfRadio = document.getElementById('sets_of');
-            const noSetsRadio = document.getElementById('no_sets');
 
             enableDisableTextBoxes();
 
-            bestOfRadio.addEventListener('change', enableDisableTextBoxes);
-            oneLegRadio.addEventListener('change', enableDisableTextBoxes);
-            setsOfRadio.addEventListener('change', enableDisableTextBoxes);
-            noSetsRadio.addEventListener('change', enableDisableTextBoxes);
+            // AJAX
+            const player2Input = document.getElementById('player2');
+            const searchResults = document.getElementById('search-results');
+
+            player2Input.addEventListener('input', function() {
+                const query = player2Input.value;
+
+                if (query.length > 2) {
+                    fetch(`/search-users?query=${query}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            searchResults.innerHTML = '';
+                            if (data.length > 0) {
+                                data.forEach(user => {
+                                    const resultItem = document.createElement('a');
+                                    resultItem.classList.add('list-group-item', 'list-group-item-action');
+                                    resultItem.textContent = user.name;
+                                    resultItem.addEventListener('click', function() {
+                                        player2Input.value = user.name;
+                                        searchResults.innerHTML = '';
+                                    });
+                                    searchResults.appendChild(resultItem);
+                                });
+                            } else {
+                                searchResults.innerHTML = '<div class="list-group-item">No results found</div>';
+                            }
+                        });
+                } else {
+                    searchResults.innerHTML = '';
+                }
+            });
         });
     </script>
 @endsection

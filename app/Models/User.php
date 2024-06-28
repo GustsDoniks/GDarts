@@ -13,7 +13,7 @@ class User extends Authenticatable
 
     public function tournaments()
     {
-        return $this->hasMany(Tournament::class, 'creator_id');
+        return $this->belongsToMany(Tournament::class, 'tournament_players', 'user_id', 'tournament_id');
     }
 
     public function comments()
@@ -21,9 +21,27 @@ class User extends Authenticatable
         return $this->hasMany(Comment::class);
     }
 
-    public function games()
+    public function gamesAsPlayer1()
     {
-        return $this->hasMany(Game::class, 'player1_id')->orWhere('player2_id', $this->id);
+        return $this->hasMany(Game::class, 'player1_id');
+    }
+    
+    public function gamesAsPlayer2()
+    {
+        return $this->hasMany(Game::class, 'player2_id');
+    }
+    
+    public function getAllGamesAttribute()
+    {
+        $gamesAsPlayer1 = $this->gamesAsPlayer1;
+        $gamesAsPlayer2 = $this->gamesAsPlayer2;
+    
+        return $gamesAsPlayer1->merge($gamesAsPlayer2);
+    }
+
+    public function tournamentsAsPlayer()
+    {
+        return $this->belongsToMany(Tournament::class, 'tournament_players', 'user_id', 'tournament_id');
     }
 
     /**
@@ -35,6 +53,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_admin',
     ];
 
     /**
@@ -48,15 +67,13 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'is_admin' => 'boolean',
+    ];
 }

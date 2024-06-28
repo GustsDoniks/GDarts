@@ -20,6 +20,12 @@ class Game extends Model
         'player2_checkout_percentage',
         'status',
         'tournament_id',
+        'game_type',
+        'legs',
+        'set_type',
+        'legs_in_set',
+        'sets',
+        'target_score',
     ];
 
     public function player1()

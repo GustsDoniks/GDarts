@@ -41,7 +41,7 @@
 @section('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Additional JavaScript can be added here if needed for form functionality
+
         });
     </script>
 @endsection
